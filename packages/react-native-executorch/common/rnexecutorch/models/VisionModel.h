@@ -3,6 +3,7 @@
 #include <jsi/jsi.h>
 #include <mutex>
 #include <opencv2/opencv.hpp>
+#include <optional>
 #include <rnexecutorch/metaprogramming/ConstructorHelpers.h>
 #include <rnexecutorch/models/BaseModel.h>
 #include <rnexecutorch/utils/FrameTransform.h>
@@ -77,6 +78,42 @@ protected:
    * @note Marked mutable to allow locking in const methods if needed
    */
   mutable std::mutex inference_mutex_;
+
+  /// Name of the currently loaded method (for multi-method models).
+  /// Empty for single-method models using default "forward".
+  std::string currentlyLoadedMethod_;
+
+  /// Optional per-channel mean for input normalisation.
+  std::optional<cv::Scalar> normMean_;
+
+  /// Optional per-channel standard deviation for input normalisation.
+  std::optional<cv::Scalar> normStd_;
+
+  /**
+   * @brief Ensures the specified method is loaded, unloading any previous
+   * method if necessary.
+   *
+   * For single-method models, pass "forward" (the default).
+   * For multi-method models, pass the specific method name (e.g.,
+   * "forward_384").
+   *
+   * @param methodName Name of the method to load. Defaults to "forward".
+   * @throws RnExecutorchError if the method cannot be loaded.
+   */
+  void ensureMethodLoaded(const std::string &methodName = "forward");
+
+  /**
+   * @brief Initializes normalization parameters from vectors.
+   *
+   * Uses cv_processing::validateNormParam() for validation.
+   *
+   * @param normMean Per-channel mean values (must be exactly 3 elements, or
+   * empty to skip).
+   * @param normStd Per-channel std dev values (must be exactly 3 elements, or
+   * empty to skip).
+   */
+  void initializeNormalization(const std::vector<float> &normMean,
+                               const std::vector<float> &normStd);
 
   /**
    * @brief Resize an RGB image to the model's expected input size

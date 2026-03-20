@@ -4,11 +4,10 @@
 #include <cstdint>
 #include <rnexecutorch/Error.h>
 #include <rnexecutorch/ErrorCodes.h>
-#include <rnexecutorch/Log.h>
+#include <rnexecutorch/data_processing/CVProcessing.h>
 #include <rnexecutorch/data_processing/ImageProcessing.h>
 #include <rnexecutorch/utils/FrameProcessor.h>
 #include <rnexecutorch/utils/FrameTransform.h>
-#include <rnexecutorch/utils/computer_vision/Processing.h>
 
 namespace rnexecutorch::models::instance_segmentation {
 
@@ -17,31 +16,7 @@ BaseInstanceSegmentation::BaseInstanceSegmentation(
     std::vector<float> normStd, bool applyNMS,
     std::shared_ptr<react::CallInvoker> callInvoker)
     : VisionModel(modelSource, callInvoker), applyNMS_(applyNMS) {
-
-  if (normMean.size() == 3) {
-    normMean_ = cv::Scalar(normMean[0], normMean[1], normMean[2]);
-  } else if (!normMean.empty()) {
-    log(LOG_LEVEL::Warn,
-        "normMean must have 3 elements — ignoring provided value.");
-  }
-  if (normStd.size() == 3) {
-    normStd_ = cv::Scalar(normStd[0], normStd[1], normStd[2]);
-  } else if (!normStd.empty()) {
-    log(LOG_LEVEL::Warn,
-        "normStd must have 3 elements — ignoring provided value.");
-  }
-}
-
-cv::Size BaseInstanceSegmentation::modelInputSize() const {
-  if (currentlyLoadedMethod_.empty()) {
-    return VisionModel::modelInputSize();
-  }
-  auto inputShapes = getAllInputShapes(currentlyLoadedMethod_);
-  if (inputShapes.empty() || inputShapes[0].size() < 2) {
-    return VisionModel::modelInputSize();
-  }
-  const auto &shape = inputShapes[0];
-  return {shape[shape.size() - 2], shape[shape.size() - 1]};
+  initializeNormalization(normMean, normStd);
 }
 
 TensorPtr BaseInstanceSegmentation::buildInputTensor(const cv::Mat &image) {
@@ -75,7 +50,7 @@ std::vector<types::Instance> BaseInstanceSegmentation::runInference(
   cv::Size modelInputSize(shape[shape.size() - 2], shape[shape.size() - 1]);
   cv::Size originalSize(image.cols, image.rows);
 
-  validateThresholds(confidenceThreshold, iouThreshold);
+  cv_processing::validateThresholds(confidenceThreshold, iouThreshold);
 
   auto forwardResult =
       BaseModel::execute(methodName, {buildInputTensor(image)});
@@ -144,13 +119,12 @@ std::vector<types::Instance> BaseInstanceSegmentation::generateFromPixels(
                       classIndices, returnMaskAtOriginalResolution, methodName);
 }
 
-std::tuple<utils::computer_vision::BBox, float, int32_t>
+std::tuple<cv_processing::BBox, float, int32_t>
 BaseInstanceSegmentation::extractDetectionData(const float *bboxData,
                                                const float *scoresData,
                                                int32_t index) {
-  utils::computer_vision::BBox bbox{
-      bboxData[index * 4], bboxData[index * 4 + 1], bboxData[index * 4 + 2],
-      bboxData[index * 4 + 3]};
+  cv_processing::BBox bbox{bboxData[index * 4], bboxData[index * 4 + 1],
+                           bboxData[index * 4 + 2], bboxData[index * 4 + 3]};
   float score = scoresData[index * 2];
   int32_t label = static_cast<int32_t>(scoresData[index * 2 + 1]);
 
@@ -158,7 +132,7 @@ BaseInstanceSegmentation::extractDetectionData(const float *bboxData,
 }
 
 cv::Rect BaseInstanceSegmentation::computeMaskCropRect(
-    const utils::computer_vision::BBox &bboxModel, cv::Size modelInputSize,
+    const cv_processing::BBox &bboxModel, cv::Size modelInputSize,
     cv::Size maskSize) {
 
   float mx1F = bboxModel.x1 * maskSize.width / modelInputSize.width;
@@ -187,7 +161,7 @@ cv::Rect BaseInstanceSegmentation::addPaddingToRect(const cv::Rect &rect,
 
 cv::Mat BaseInstanceSegmentation::warpToOriginalResolution(
     const cv::Mat &probMat, const cv::Rect &maskRect, cv::Size originalSize,
-    cv::Size maskSize, const utils::computer_vision::BBox &bboxOriginal) {
+    cv::Size maskSize, const cv_processing::BBox &bboxOriginal) {
 
   float scaleX = static_cast<float>(originalSize.width) / maskSize.width;
   float scaleY = static_cast<float>(originalSize.height) / maskSize.height;
@@ -211,8 +185,8 @@ cv::Mat BaseInstanceSegmentation::thresholdToBinary(const cv::Mat &probMat) {
 }
 
 cv::Mat BaseInstanceSegmentation::processMaskFromLogits(
-    const cv::Mat &logitsMat, const utils::computer_vision::BBox &bboxModel,
-    const utils::computer_vision::BBox &bboxOriginal, cv::Size modelInputSize,
+    const cv::Mat &logitsMat, const cv_processing::BBox &bboxModel,
+    const cv_processing::BBox &bboxOriginal, cv::Size modelInputSize,
     cv::Size originalSize, bool warpToOriginal) {
 
   cv::Size maskSize = logitsMat.size();
@@ -232,22 +206,6 @@ cv::Mat BaseInstanceSegmentation::processMaskFromLogits(
   return thresholdToBinary(probMat);
 }
 
-void BaseInstanceSegmentation::validateThresholds(double confidenceThreshold,
-                                                  double iouThreshold) const {
-  if (confidenceThreshold < 0 || confidenceThreshold > 1) {
-    throw RnExecutorchError(
-        RnExecutorchErrorCode::InvalidConfig,
-        "Confidence threshold must be greater or equal to 0 "
-        "and less than or equal to 1.");
-  }
-
-  if (iouThreshold < 0 || iouThreshold > 1) {
-    throw RnExecutorchError(RnExecutorchErrorCode::InvalidConfig,
-                            "IoU threshold must be greater or equal to 0 "
-                            "and less than or equal to 1.");
-  }
-}
-
 void BaseInstanceSegmentation::validateOutputTensors(
     const std::vector<EValue> &tensors) const {
   if (tensors.size() != 3) {
@@ -258,55 +216,12 @@ void BaseInstanceSegmentation::validateOutputTensors(
   }
 }
 
-std::set<int32_t> BaseInstanceSegmentation::prepareAllowedClasses(
-    const std::vector<int32_t> &classIndices) const {
-  std::set<int32_t> allowedClasses;
-  if (!classIndices.empty()) {
-    allowedClasses.insert(classIndices.begin(), classIndices.end());
-  }
-  return allowedClasses;
-}
-
-void BaseInstanceSegmentation::ensureMethodLoaded(
-    const std::string &methodName) {
-  if (methodName.empty()) {
-    throw RnExecutorchError(
-        RnExecutorchErrorCode::InvalidConfig,
-        "Method name cannot be empty. Use 'forward' for single-method models "
-        "or 'forward_{inputSize}' for multi-method models.");
-  }
-
-  if (currentlyLoadedMethod_ == methodName) {
-    return;
-  }
-
-  if (!module_) {
-    throw RnExecutorchError(RnExecutorchErrorCode::ModuleNotLoaded,
-                            "Model not loaded. Cannot load method '" +
-                                methodName + "'.");
-  }
-
-  if (!currentlyLoadedMethod_.empty()) {
-    module_->unload_method(currentlyLoadedMethod_);
-  }
-
-  auto loadResult = module_->load_method(methodName);
-  if (loadResult != executorch::runtime::Error::Ok) {
-    throw RnExecutorchError(
-        loadResult, "Failed to load method '" + methodName +
-                        "'. Ensure the method exists in the exported model.");
-  }
-
-  currentlyLoadedMethod_ = methodName;
-}
-
 std::vector<types::Instance> BaseInstanceSegmentation::finalizeInstances(
     std::vector<types::Instance> instances, double iouThreshold,
     int32_t maxInstances) const {
 
   if (applyNMS_) {
-    instances =
-        utils::computer_vision::nonMaxSuppression(instances, iouThreshold);
+    instances = cv_processing::nonMaxSuppression(instances, iouThreshold);
   }
 
   if (std::cmp_greater(instances.size(), maxInstances)) {
@@ -326,7 +241,7 @@ std::vector<types::Instance> BaseInstanceSegmentation::collectInstances(
       static_cast<float>(originalSize.width) / modelInputSize.width;
   float heightRatio =
       static_cast<float>(originalSize.height) / modelInputSize.height;
-  auto allowedClasses = prepareAllowedClasses(classIndices);
+  auto allowedClasses = cv_processing::prepareAllowedClasses(classIndices);
 
   // CONTRACT
   auto bboxTensor = tensors[0].toTensor();   // [1, N, 4]
@@ -357,8 +272,7 @@ std::vector<types::Instance> BaseInstanceSegmentation::collectInstances(
       continue;
     }
 
-    utils::computer_vision::BBox bboxOriginal =
-        bboxModel.scale(widthRatio, heightRatio);
+    cv_processing::BBox bboxOriginal = bboxModel.scale(widthRatio, heightRatio);
     if (!bboxOriginal.isValid()) {
       continue;
     }

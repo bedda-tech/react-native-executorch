@@ -15,6 +15,7 @@
 #include <rnexecutorch/host_objects/JSTensorViewOut.h>
 #include <rnexecutorch/jsi/OwningArrayBuffer.h>
 
+#include <rnexecutorch/data_processing/CVTypes.h>
 #include <rnexecutorch/metaprogramming/TypeConcepts.h>
 #include <rnexecutorch/models/instance_segmentation/Types.h>
 #include <rnexecutorch/models/object_detection/Constants.h>
@@ -25,7 +26,6 @@
 #include <rnexecutorch/models/speech_to_text/common/types/TranscriptionResult.h>
 #include <rnexecutorch/models/style_transfer/Types.h>
 #include <rnexecutorch/models/voice_activity_detection/Types.h>
-#include <rnexecutorch/utils/computer_vision/Types.h>
 
 using namespace rnexecutorch::models::speech_to_text;
 
@@ -433,7 +433,7 @@ getJsiValue(const std::unordered_map<std::string_view, float> &map,
   return mapObj;
 }
 
-inline jsi::Value getJsiValue(const utils::computer_vision::BBox &bbox,
+inline jsi::Value getJsiValue(const cv_processing::BBox &bbox,
                               jsi::Runtime &runtime) {
   jsi::Object obj(runtime);
   obj.setProperty(runtime, "x1", bbox.x1);

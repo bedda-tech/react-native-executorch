@@ -103,6 +103,10 @@ set(IMAGE_UTILS_SOURCES
     ${COMMON_DIR}/ada/ada.cpp
 )
 
+set(CV_PROCESSING_SOURCES
+    ${RNEXECUTORCH_DIR}/data_processing/CVProcessing.cpp
+)
+
 set(TOKENIZER_SOURCES ${RNEXECUTORCH_DIR}/TokenizerModule.cpp)
 set(DSP_SOURCES ${RNEXECUTORCH_DIR}/data_processing/dsp.cpp)
 
@@ -157,6 +161,12 @@ add_rn_test(ImageProcessingTest unit/ImageProcessingTest.cpp
     LIBS opencv_deps
 )
 
+add_rn_test(CVProcessingTest unit/CVProcessingTest.cpp
+    SOURCES
+        ${CV_PROCESSING_SOURCES}
+    LIBS opencv_deps
+)
+
 add_rn_test(FrameProcessorTests unit/FrameProcessorTest.cpp
     SOURCES
         ${RNEXECUTORCH_DIR}/utils/FrameProcessor.cpp
@@ -179,6 +189,7 @@ add_rn_test(VisionModelTests integration/VisionModelTest.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameProcessor.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameExtractor.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameTransform.cpp
+        ${CV_PROCESSING_SOURCES}
         ${IMAGE_UTILS_SOURCES}
     LIBS opencv_deps android
 )
@@ -190,6 +201,7 @@ add_rn_test(ClassificationTests integration/ClassificationTest.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameProcessor.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameExtractor.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameTransform.cpp
+        ${CV_PROCESSING_SOURCES}
         ${IMAGE_UTILS_SOURCES}
     LIBS opencv_deps android
 )
@@ -202,6 +214,7 @@ add_rn_test(ObjectDetectionTests integration/ObjectDetectionTest.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameExtractor.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameTransform.cpp
         ${RNEXECUTORCH_DIR}/utils/computer_vision/Processing.cpp
+        ${CV_PROCESSING_SOURCES}
         ${IMAGE_UTILS_SOURCES}
     LIBS opencv_deps android
 )
@@ -214,6 +227,7 @@ add_rn_test(ImageEmbeddingsTests integration/ImageEmbeddingsTest.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameProcessor.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameExtractor.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameTransform.cpp
+        ${CV_PROCESSING_SOURCES}
         ${IMAGE_UTILS_SOURCES}
     LIBS opencv_deps android
 )
@@ -233,6 +247,7 @@ add_rn_test(StyleTransferTests integration/StyleTransferTest.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameProcessor.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameExtractor.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameTransform.cpp
+        ${CV_PROCESSING_SOURCES}
         ${IMAGE_UTILS_SOURCES}
     LIBS opencv_deps android
 )
@@ -306,7 +321,7 @@ add_rn_test(InstanceSegmentationTests integration/InstanceSegmentationTest.cpp
         ${RNEXECUTORCH_DIR}/models/VisionModel.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameProcessor.cpp
         ${RNEXECUTORCH_DIR}/utils/FrameExtractor.cpp
-        ${RNEXECUTORCH_DIR}/utils/computer_vision/Processing.cpp
+        ${CV_PROCESSING_SOURCES}
         ${IMAGE_UTILS_SOURCES}
     LIBS opencv_deps android
 )

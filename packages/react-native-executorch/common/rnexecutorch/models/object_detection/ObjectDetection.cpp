@@ -1,16 +1,13 @@
 #include "ObjectDetection.h"
 #include "Constants.h"
 
-#include <set>
-
 #include <rnexecutorch/Error.h>
 #include <rnexecutorch/ErrorCodes.h>
-#include <rnexecutorch/Log.h>
+#include <rnexecutorch/data_processing/CVProcessing.h>
 #include <rnexecutorch/data_processing/ImageProcessing.h>
 #include <rnexecutorch/host_objects/JsiConversions.h>
 #include <rnexecutorch/utils/FrameProcessor.h>
 #include <rnexecutorch/utils/FrameTransform.h>
-#include <rnexecutorch/utils/computer_vision/Processing.h>
 
 namespace rnexecutorch::models::object_detection {
 
@@ -20,64 +17,7 @@ ObjectDetection::ObjectDetection(
     std::shared_ptr<react::CallInvoker> callInvoker)
     : VisionModel(modelSource, callInvoker),
       labelNames_(std::move(labelNames)) {
-  if (normMean.size() == 3) {
-    normMean_ = cv::Scalar(normMean[0], normMean[1], normMean[2]);
-  } else if (!normMean.empty()) {
-    log(LOG_LEVEL::Warn,
-        "normMean must have 3 elements — ignoring provided value.");
-  }
-  if (normStd.size() == 3) {
-    normStd_ = cv::Scalar(normStd[0], normStd[1], normStd[2]);
-  } else if (!normStd.empty()) {
-    log(LOG_LEVEL::Warn,
-        "normStd must have 3 elements — ignoring provided value.");
-  }
-}
-
-cv::Size ObjectDetection::modelInputSize() const {
-  if (currentlyLoadedMethod_.empty()) {
-    return VisionModel::modelInputSize();
-  }
-  auto inputShapes = getAllInputShapes(currentlyLoadedMethod_);
-  if (inputShapes.empty() || inputShapes[0].size() < 2) {
-    return VisionModel::modelInputSize();
-  }
-  const auto &shape = inputShapes[0];
-  return {static_cast<int>(shape[shape.size() - 2]),
-          static_cast<int>(shape[shape.size() - 1])};
-}
-
-void ObjectDetection::ensureMethodLoaded(const std::string &methodName) {
-  if (methodName.empty()) {
-    throw RnExecutorchError(RnExecutorchErrorCode::InvalidUserInput,
-                            "methodName cannot be empty");
-  }
-  if (currentlyLoadedMethod_ == methodName) {
-    return;
-  }
-  if (!module_) {
-    throw RnExecutorchError(RnExecutorchErrorCode::ModuleNotLoaded,
-                            "Model module is not loaded");
-  }
-  if (!currentlyLoadedMethod_.empty()) {
-    module_->unload_method(currentlyLoadedMethod_);
-  }
-  auto loadResult = module_->load_method(methodName);
-  if (loadResult != executorch::runtime::Error::Ok) {
-    throw RnExecutorchError(
-        loadResult, "Failed to load method '" + methodName +
-                        "'. Ensure the method exists in the exported model.");
-  }
-  currentlyLoadedMethod_ = methodName;
-}
-
-std::set<int32_t> ObjectDetection::prepareAllowedClasses(
-    const std::vector<int32_t> &classIndices) const {
-  std::set<int32_t> allowedClasses;
-  if (!classIndices.empty()) {
-    allowedClasses.insert(classIndices.begin(), classIndices.end());
-  }
-  return allowedClasses;
+  initializeNormalization(normMean, normStd);
 }
 
 std::vector<types::Detection>
@@ -91,7 +31,7 @@ ObjectDetection::postprocess(const std::vector<EValue> &tensors,
       static_cast<float>(originalSize.height) / inputSize.height;
 
   // Prepare allowed classes set for filtering
-  auto allowedClasses = prepareAllowedClasses(classIndices);
+  auto allowedClasses = cv_processing::prepareAllowedClasses(classIndices);
 
   std::vector<types::Detection> detections;
   auto bboxTensor = tensors.at(0).toTensor();
@@ -134,24 +74,17 @@ ObjectDetection::postprocess(const std::vector<EValue> &tensors,
               " exceeds labelNames size " + std::to_string(labelNames_.size()) +
               ". Ensure the labelMap covers all model output classes.");
     }
-    detections.emplace_back(utils::computer_vision::BBox{x1, y1, x2, y2},
+    detections.emplace_back(cv_processing::BBox{x1, y1, x2, y2},
                             labelNames_[labelIdx], labelIdx, scores[i]);
   }
 
-  return utils::computer_vision::nonMaxSuppression(detections, iouThreshold);
+  return cv_processing::nonMaxSuppression(detections, iouThreshold);
 }
 
 std::vector<types::Detection> ObjectDetection::runInference(
     cv::Mat image, double detectionThreshold, double iouThreshold,
     const std::vector<int32_t> &classIndices, const std::string &methodName) {
-  if (detectionThreshold < 0.0 || detectionThreshold > 1.0) {
-    throw RnExecutorchError(RnExecutorchErrorCode::InvalidUserInput,
-                            "detectionThreshold must be in range [0, 1]");
-  }
-  if (iouThreshold < 0.0 || iouThreshold > 1.0) {
-    throw RnExecutorchError(RnExecutorchErrorCode::InvalidUserInput,
-                            "iouThreshold must be in range [0, 1]");
-  }
+  cv_processing::validateThresholds(detectionThreshold, iouThreshold);
 
   std::scoped_lock lock(inference_mutex_);
 

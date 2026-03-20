@@ -2,8 +2,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <rnexecutorch/data_processing/CVTypes.h>
 #include <rnexecutorch/jsi/OwningArrayBuffer.h>
-#include <rnexecutorch/utils/computer_vision/Types.h>
 
 namespace rnexecutorch::models::instance_segmentation::types {
 
@@ -16,13 +16,13 @@ namespace rnexecutorch::models::instance_segmentation::types {
 struct Instance {
 
   Instance() = default;
-  Instance(utils::computer_vision::BBox bbox,
-           std::shared_ptr<OwningArrayBuffer> mask, int32_t maskWidth,
-           int32_t maskHeight, int32_t classIndex, float score)
+  Instance(cv_processing::BBox bbox, std::shared_ptr<OwningArrayBuffer> mask,
+           int32_t maskWidth, int32_t maskHeight, int32_t classIndex,
+           float score)
       : bbox(bbox), mask(std::move(mask)), maskWidth(maskWidth),
         maskHeight(maskHeight), classIndex(classIndex), score(score) {}
 
-  utils::computer_vision::BBox bbox;
+  cv_processing::BBox bbox;
   std::shared_ptr<OwningArrayBuffer> mask;
   int32_t maskWidth;
   int32_t maskHeight;
