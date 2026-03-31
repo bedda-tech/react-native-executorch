@@ -30,6 +30,9 @@ file(GLOB_RECURSE OPENCV_CPP_SOURCES CONFIGURE_DEPENDS
   "${COMMON_CPP_DIR}/rnexecutorch/utils/FrameProcessor.cpp"
   "${COMMON_CPP_DIR}/rnexecutorch/utils/FrameTransform.cpp"
   "${COMMON_CPP_DIR}/rnexecutorch/utils/computer_vision/*.cpp"
+  "${COMMON_CPP_DIR}/runner/encoders/vision_encoder.cpp"
+  "${COMMON_CPP_DIR}/runner/multimodal_prefiller.cpp"
+  "${COMMON_CPP_DIR}/runner/multimodal_runner.cpp"
 )
 
 # Phonemizer-dependent sources: Kokoro TTS (only user of phonemis)

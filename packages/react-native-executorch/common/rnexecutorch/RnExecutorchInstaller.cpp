@@ -2,22 +2,28 @@
 
 #include <rnexecutorch/TokenizerModule.h>
 #include <rnexecutorch/host_objects/JsiConversions.h>
-#include <rnexecutorch/models/classification/Classification.h>
-#include <rnexecutorch/models/embeddings/image/ImageEmbeddings.h>
 #include <rnexecutorch/models/embeddings/text/TextEmbeddings.h>
-#include <rnexecutorch/models/instance_segmentation/BaseInstanceSegmentation.h>
 #include <rnexecutorch/models/llm/LLM.h>
-#include <rnexecutorch/models/object_detection/ObjectDetection.h>
-#include <rnexecutorch/models/ocr/OCR.h>
-#include <rnexecutorch/models/semantic_segmentation/BaseSemanticSegmentation.h>
 #include <rnexecutorch/models/speech_to_text/SpeechToText.h>
-#include <rnexecutorch/models/style_transfer/StyleTransfer.h>
-#include <rnexecutorch/models/text_to_image/TextToImage.h>
-#include <rnexecutorch/models/text_to_speech/TextToSpeech.h>
-#include <rnexecutorch/models/vertical_ocr/VerticalOCR.h>
 #include <rnexecutorch/models/voice_activity_detection/VoiceActivityDetection.h>
 #include <rnexecutorch/threads/GlobalThreadPool.h>
 #include <rnexecutorch/threads/utils/ThreadUtils.h>
+
+#ifdef RNE_ENABLE_OPENCV
+#include <rnexecutorch/models/classification/Classification.h>
+#include <rnexecutorch/models/embeddings/image/ImageEmbeddings.h>
+#include <rnexecutorch/models/instance_segmentation/BaseInstanceSegmentation.h>
+#include <rnexecutorch/models/object_detection/ObjectDetection.h>
+#include <rnexecutorch/models/ocr/OCR.h>
+#include <rnexecutorch/models/semantic_segmentation/BaseSemanticSegmentation.h>
+#include <rnexecutorch/models/style_transfer/StyleTransfer.h>
+#include <rnexecutorch/models/text_to_image/TextToImage.h>
+#include <rnexecutorch/models/vertical_ocr/VerticalOCR.h>
+#endif
+
+#ifdef RNE_ENABLE_PHONEMIZER
+#include <rnexecutorch/models/text_to_speech/TextToSpeech.h>
+#endif
 
 #if defined(__ANDROID__) && defined(__aarch64__)
 #include <executorch/extension/threadpool/cpuinfo_utils.h>
@@ -40,6 +46,7 @@ void RnExecutorchInstaller::injectJSIBindings(
   jsiRuntime->global().setProperty(*jsiRuntime, "__rne_isEmulator",
                                    jsi::Value(isEmulator));
 
+#ifdef RNE_ENABLE_OPENCV
   jsiRuntime->global().setProperty(
       *jsiRuntime, "loadStyleTransfer",
       RnExecutorchInstaller::loadModel<models::style_transfer::StyleTransfer>(
@@ -72,6 +79,7 @@ void RnExecutorchInstaller::injectJSIBindings(
       RnExecutorchInstaller::loadModel<
           models::object_detection::ObjectDetection>(jsiRuntime, jsCallInvoker,
                                                      "loadObjectDetection"));
+#endif // RNE_ENABLE_OPENCV
 
   jsiRuntime->global().setProperty(
       *jsiRuntime, "loadExecutorchModule",
@@ -83,10 +91,12 @@ void RnExecutorchInstaller::injectJSIBindings(
       RnExecutorchInstaller::loadModel<TokenizerModule>(
           jsiRuntime, jsCallInvoker, "loadTokenizerModule"));
 
+#ifdef RNE_ENABLE_OPENCV
   jsiRuntime->global().setProperty(
       *jsiRuntime, "loadImageEmbeddings",
       RnExecutorchInstaller::loadModel<models::embeddings::ImageEmbeddings>(
           jsiRuntime, jsCallInvoker, "loadImageEmbeddings"));
+#endif // RNE_ENABLE_OPENCV
 
   jsiRuntime->global().setProperty(
       *jsiRuntime, "loadTextEmbeddings",
@@ -98,6 +108,7 @@ void RnExecutorchInstaller::injectJSIBindings(
       RnExecutorchInstaller::loadModel<models::llm::LLM>(
           jsiRuntime, jsCallInvoker, "loadLLM"));
 
+#ifdef RNE_ENABLE_OPENCV
   jsiRuntime->global().setProperty(
       *jsiRuntime, "loadOCR",
       RnExecutorchInstaller::loadModel<models::ocr::OCR>(
@@ -107,16 +118,19 @@ void RnExecutorchInstaller::injectJSIBindings(
       *jsiRuntime, "loadVerticalOCR",
       RnExecutorchInstaller::loadModel<models::ocr::VerticalOCR>(
           jsiRuntime, jsCallInvoker, "loadVerticalOCR"));
+#endif // RNE_ENABLE_OPENCV
 
   jsiRuntime->global().setProperty(
       *jsiRuntime, "loadSpeechToText",
       RnExecutorchInstaller::loadModel<models::speech_to_text::SpeechToText>(
           jsiRuntime, jsCallInvoker, "loadSpeechToText"));
 
+#ifdef RNE_ENABLE_PHONEMIZER
   jsiRuntime->global().setProperty(
       *jsiRuntime, "loadTextToSpeechKokoro",
       RnExecutorchInstaller::loadModel<models::text_to_speech::kokoro::Kokoro>(
           jsiRuntime, jsCallInvoker, "loadTextToSpeechKokoro"));
+#endif // RNE_ENABLE_PHONEMIZER
 
   jsiRuntime->global().setProperty(
       *jsiRuntime, "loadVAD",
