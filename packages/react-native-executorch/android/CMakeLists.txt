@@ -24,6 +24,10 @@ set(LIBS_DIR "${CMAKE_SOURCE_DIR}/../third-party/android/libs")
 set(TOKENIZERS_DIR "${CMAKE_SOURCE_DIR}/../third-party/include/executorch/extension/llm/tokenizers/include")
 set(INCLUDE_DIR "${CMAKE_SOURCE_DIR}/../third-party/include")
 
+# Optional feature flags — driven by user config in package.json, passed via gradle cmake arguments
+option(RNE_ENABLE_OPENCV "Enable OpenCV-dependent computer vision features" ON)
+option(RNE_ENABLE_PHONEMIZER "Enable Phonemizer-dependent TTS features" ON)
+
 # Treat third-party headers as system headers to suppress deprecation warnings
 include_directories(SYSTEM "${INCLUDE_DIR}")
 
