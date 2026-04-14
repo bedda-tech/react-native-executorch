@@ -6,15 +6,24 @@ import {
   ChatConfig,
   GenerationConfig,
   LLMCapability,
+  LLMModelName,
   LLMTool,
   Message,
   SPECIAL_TOKENS,
+  ToolCall,
   ToolsConfig,
 } from '../types/llm';
 import { parseToolCall } from '../utils/llm';
+import { parseGemma4ToolCalls } from '../utils/llms/gemma4/toolParser';
 import { Logger } from '../common/Logger';
 import { RnExecutorchError, parseUnknownError } from '../errors/errorUtils';
 import { RnExecutorchErrorCode } from '../errors/ErrorCodes';
+
+/** Model names that use Gemma 4's native function-calling format. */
+const GEMMA4_MODEL_NAMES: readonly LLMModelName[] = [
+  'gemma-4-e4b',
+  'gemma-4-e4b-quantized',
+];
 
 export class LLMController {
   private nativeModule: any;
@@ -25,6 +34,7 @@ export class LLMController {
   private _isReady = false;
   private _isGenerating = false;
   private _messageHistory: Message[] = [];
+  private _modelName: LLMModelName | undefined;
   // User callbacks
   private tokenCallback: (token: string) => void;
   private messageHistoryCallback: (messageHistory: Message[]) => void;
@@ -72,12 +82,14 @@ export class LLMController {
   }
 
   public async load({
+    modelName,
     modelSource,
     tokenizerSource,
     tokenizerConfigSource,
     capabilities,
     onDownloadProgressCallback,
   }: {
+    modelName?: LLMModelName;
     modelSource: ResourceSource;
     tokenizerSource: ResourceSource;
     tokenizerConfigSource: ResourceSource;
@@ -85,6 +97,7 @@ export class LLMController {
     onDownloadProgressCallback?: (downloadProgress: number) => void;
   }) {
     // reset inner state when loading new model
+    this._modelName = modelName;
     this.messageHistoryCallback(this.chatConfig.initialMessageHistory);
     this.isGeneratingCallback(false);
     this.isReadyCallback(false);
@@ -301,6 +314,52 @@ export class LLMController {
     return this.getGeneratedTokenCount() + this.getPromptTokenCount();
   }
 
+  /**
+   * Returns true when the loaded model uses Gemma 4's function-call format.
+   * @returns Whether the current model is a Gemma 4 variant.
+   */
+  private isGemma4(): boolean {
+    return (
+      !!this._modelName &&
+      (GEMMA4_MODEL_NAMES as readonly string[]).includes(this._modelName)
+    );
+  }
+
+  /**
+   * Dispatches to the correct tool-call parser based on the loaded model.
+   * Gemma 4 uses its own XML-block format; all other models use the generic
+   * JSON-array parser.
+   * @param response - Raw string output from the model.
+   * @returns Array of parsed tool calls extracted from the response.
+   */
+  private parseToolCalls(response: string): ToolCall[] {
+    if (this.isGemma4()) {
+      return parseGemma4ToolCalls(response);
+    }
+    return parseToolCall(response);
+  }
+
+  /**
+   * Generates a response and returns both the raw text and any structured
+   * tool calls parsed from it.  Unlike `sendMessage`, this method does not
+   * update `messageHistory` and does not execute tool callbacks — it is
+   * intended for use by agent loops that manage state themselves.
+   *
+   * @param messages - Conversation turns to send to the model.
+   * @param tools    - Optional tool schemas to inject into the prompt.
+   * @returns An object with `response` (raw model output) and `toolCalls`
+   *          (parsed tool call array, may be empty).
+   */
+  public async generateWithTools(
+    messages: Message[],
+    tools?: LLMTool[]
+  ): Promise<{ response: string; toolCalls: ToolCall[] }> {
+    const response = await this.generate(messages, tools);
+    const toolCalls =
+      tools && tools.length > 0 ? this.parseToolCalls(response) : [];
+    return { response, toolCalls };
+  }
+
   public async generate(
     messages: Message[],
     tools?: LLMTool[]
@@ -401,7 +460,7 @@ export class LLMController {
     }
 
     if (this.toolsConfig) {
-      const toolCalls = parseToolCall(response);
+      const toolCalls = this.parseToolCalls(response);
       for (const toolCall of toolCalls) {
         this.toolsConfig
           .executeToolCallback(toolCall)

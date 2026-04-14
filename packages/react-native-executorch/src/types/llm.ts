@@ -157,6 +157,24 @@ export interface LLMTypeBase {
    * @returns The generated tokens as `string`.
    */
   generate: (messages: Message[], tools?: LLMTool[]) => Promise<string>;
+
+  /**
+   * Generates a response and returns both the raw model output and any tool calls
+   * parsed from it. Unlike `sendMessage`, this does not update `messageHistory`
+   * and does not invoke tool callbacks — designed for agent loops managing state
+   * directly.
+   *
+   * When the loaded model is Gemma 4, uses Gemma 4's native `<function_calls>`
+   * XML-block parser. All other models use the generic JSON-array parser.
+   *
+   * @param messages - Array of messages representing the chat history.
+   * @param tools    - Optional tool schemas to inject into the prompt.
+   * @returns An object with `response` (raw string) and `toolCalls` (parsed tool calls).
+   */
+  generateWithTools: (
+    messages: Message[],
+    tools?: LLMTool[]
+  ) => Promise<{ response: string; toolCalls: ToolCall[] }>;
   /**
    * Returns the number of total tokens from the previous generation. This is a sum of prompt tokens and generated tokens.
    * @returns The count of prompt and generated tokens.

@@ -7,6 +7,7 @@ import {
   LLMType,
   LLMTypeMultimodal,
   Message,
+  ToolCall,
 } from '../../types/llm';
 import { LLMController } from '../../controllers/LLMController';
 import { RnExecutorchError, parseUnknownError } from '../../errors/errorUtils';
@@ -58,6 +59,7 @@ export function useLLM({
     (async () => {
       try {
         await controllerInstance.load({
+          modelName: model.modelName,
           modelSource: model.modelSource,
           tokenizerSource: model.tokenizerSource,
           tokenizerConfigSource: model.tokenizerConfigSource!,
@@ -100,6 +102,17 @@ export function useLLM({
     (messages: Message[], tools?: LLMTool[]) => {
       setResponse('');
       return controllerInstance.generate(messages, tools);
+    },
+    [controllerInstance]
+  );
+
+  const generateWithTools = useCallback(
+    (
+      messages: Message[],
+      tools?: LLMTool[]
+    ): Promise<{ response: string; toolCalls: ToolCall[] }> => {
+      setResponse('');
+      return controllerInstance.generateWithTools(messages, tools);
     },
     [controllerInstance]
   );
@@ -150,6 +163,7 @@ export function useLLM({
     getTotalTokenCount: getTotalTokenCount,
     configure: configure,
     generate: generate,
+    generateWithTools: generateWithTools,
     sendMessage: sendMessage,
     deleteMessage: deleteMessage,
     interrupt: interrupt,
