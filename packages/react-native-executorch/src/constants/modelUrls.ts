@@ -1,5 +1,10 @@
 import { Platform } from 'react-native';
-import { URL_PREFIX, VERSION_TAG } from './versions';
+import {
+  BEDDA_URL_PREFIX,
+  BEDDA_VERSION_TAG,
+  URL_PREFIX,
+  VERSION_TAG,
+} from './versions';
 
 // LLMs
 
@@ -461,6 +466,42 @@ export const LFM2_VL_450M_QUANTIZED = {
   modelSource: LFM2_VL_450M_QUANTIZED_MODEL,
   tokenizerSource: LFM2_VL_450M_TOKENIZER,
   tokenizerConfigSource: LFM2_VL_450M_TOKENIZER_CONFIG,
+} as const;
+
+// GEMMA 4 (Deft fork — exported by bedda-tech, hosted at bedda-tech HF org)
+// Run scripts/export_gemma4_e4b.py on a GPU machine to generate the .pte artifact,
+// then upload to: bedda-tech/react-native-executorch-gemma-4
+const GEMMA4_E4B_ROOT = `${BEDDA_URL_PREFIX}-gemma-4/${BEDDA_VERSION_TAG}/gemma-4-e4b/`;
+const GEMMA4_E4B_QUANTIZED_MODEL = GEMMA4_E4B_ROOT + 'quantized/gemma4_e4b_8da4w.pte';
+const GEMMA4_E4B_MODEL = GEMMA4_E4B_ROOT + 'original/gemma4_e4b_bf16.pte';
+const GEMMA4_E4B_TOKENIZER = GEMMA4_E4B_ROOT + 'tokenizer.json';
+const GEMMA4_E4B_TOKENIZER_CONFIG = GEMMA4_E4B_ROOT + 'tokenizer_config.json';
+const GEMMA4_E4B_GENERATION_CONFIG = GEMMA4_E4B_ROOT + 'generation_config.json';
+
+/**
+ * Gemma 4 E4B (4 billion parameter instruct model) — quantized (8da4w XNNPACK).
+ * Exported by bedda-tech for on-device use in the Deft agent.
+ * @category Models - LLM
+ */
+export const GEMMA4_E4B_QUANTIZED = {
+  modelName: 'gemma-4-e4b-quantized',
+  modelSource: GEMMA4_E4B_QUANTIZED_MODEL,
+  tokenizerSource: GEMMA4_E4B_TOKENIZER,
+  tokenizerConfigSource: GEMMA4_E4B_TOKENIZER_CONFIG,
+  generationConfigSource: GEMMA4_E4B_GENERATION_CONFIG,
+} as const;
+
+/**
+ * Gemma 4 E4B (4 billion parameter instruct model) — full bfloat16 precision.
+ * For high-memory devices only (requires ~8 GB free RAM).
+ * @category Models - LLM
+ */
+export const GEMMA4_E4B = {
+  modelName: 'gemma-4-e4b',
+  modelSource: GEMMA4_E4B_MODEL,
+  tokenizerSource: GEMMA4_E4B_TOKENIZER,
+  tokenizerConfigSource: GEMMA4_E4B_TOKENIZER_CONFIG,
+  generationConfigSource: GEMMA4_E4B_GENERATION_CONFIG,
 } as const;
 
 // Classification

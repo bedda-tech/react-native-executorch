@@ -56,7 +56,10 @@ export type LLMModelName =
   | 'lfm2.5-1.2b-instruct'
   | 'lfm2.5-1.2b-instruct-quantized'
   | 'lfm2.5-vl-1.6b-quantized'
-  | 'lfm2.5-vl-450m-quantized';
+  | 'lfm2.5-vl-450m-quantized'
+  // Deft fork models (bedda-tech)
+  | 'gemma-4-e4b'
+  | 'gemma-4-e4b-quantized';
 
 /**
  * Properties for initializing and configuring a Large Language Model (LLM) instance.

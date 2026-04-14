@@ -1,0 +1,130 @@
+---
+sidebar_position: 2
+title: Exporting Gemma 4 E4B
+---
+
+# Exporting Gemma 4 E4B to ExecuTorch
+
+This guide covers how to export Google's Gemma 4 E4B model to the `.pte` format
+used by ExecuTorch, which powers `GEMMA4_E4B_QUANTIZED` in this library.
+
+The pre-exported artifacts are hosted at
+[bedda-tech/react-native-executorch-gemma-4](https://huggingface.co/bedda-tech/react-native-executorch-gemma-4)
+and are downloaded automatically when you use the `GEMMA4_E4B_QUANTIZED` constant.
+
+You only need to follow this guide if you want to reproduce the export or build a
+custom variant.
+
+## Prerequisites
+
+- Linux machine with an NVIDIA GPU (**A100 80GB or H100 recommended**)
+- Minimum 24 GB VRAM (for 8da4w quantized export)
+- Python 3.10+
+- CUDA 12.1+
+- A [Hugging Face account](https://huggingface.co) with the
+  [Gemma 4 license accepted](https://huggingface.co/google/gemma-4-4b-it)
+
+## Quantization format
+
+ExecuTorch uses **8da4w** quantization (8-bit dynamic activation, 4-bit weight)
+via the XNNPACK backend. This is **not** the same as llama.cpp's Q4_K_M GGUF
+format — those are two different runtimes with incompatible model formats.
+
+| Format | Runtime | Size (E4B) | Use case |
+|--------|---------|------------|----------|
+| 8da4w `.pte` | ExecuTorch XNNPACK | ~2.5 GB | Android/iOS on-device |
+| Q4_K_M `.gguf` | llama.cpp / Ollama | ~2.5 GB | Desktop / server |
+
+## Setup
+
+Clone the repo and set up the export environment:
+
+```bash
+git clone https://github.com/bedda-tech/react-native-executorch
+cd react-native-executorch
+
+# Install Python dependencies (creates .venv)
+bash scripts/setup_export_env.sh
+source .venv/bin/activate
+```
+
+## Running the export
+
+```bash
+# Accept the Gemma 4 license at https://huggingface.co/google/gemma-4-4b-it first
+export HF_TOKEN=hf_your_token_here
+
+# Export quantized (recommended — ~2.5 GB, runs on 6 GB+ RAM devices)
+python scripts/export_gemma4_e4b.py
+
+# Export full bfloat16 (optional — ~8 GB, needs high-memory devices)
+python scripts/export_gemma4_e4b.py --no-quantize
+```
+
+Artifacts are saved to `./artifacts/gemma-4-e4b/`:
+
+```
+artifacts/gemma-4-e4b/
+  quantized/
+    gemma4_e4b_8da4w.pte     # ~2.5 GB — the model
+  tokenizer.json
+  tokenizer_config.json
+  generation_config.json
+  manifest.json
+```
+
+## Verifying on Android
+
+Push to a device and run a quick test:
+
+```bash
+adb push artifacts/gemma-4-e4b/ /sdcard/deft-models/gemma-4-e4b/
+```
+
+In your app, point to the local path instead of HF:
+
+```typescript
+import { useLLM } from 'react-native-executorch'
+
+const { sendMessage, isReady } = useLLM({
+  model: {
+    modelName: 'gemma-4-e4b-quantized',
+    modelSource: 'file:///sdcard/deft-models/gemma-4-e4b/quantized/gemma4_e4b_8da4w.pte',
+    tokenizerSource: 'file:///sdcard/deft-models/gemma-4-e4b/tokenizer.json',
+    tokenizerConfigSource: 'file:///sdcard/deft-models/gemma-4-e4b/tokenizer_config.json',
+  },
+})
+```
+
+## Publishing to Hugging Face
+
+Once verified, upload to the bedda-tech org:
+
+```bash
+huggingface-cli login
+huggingface-cli upload bedda-tech/react-native-executorch-gemma-4 \
+  ./artifacts/gemma-4-e4b/ \
+  --repo-type model
+```
+
+After upload the `GEMMA4_E4B_QUANTIZED` constant in this library will resolve to
+the correct URL automatically — no code changes needed.
+
+## Using the model
+
+```typescript
+import { useLLM, GEMMA4_E4B_QUANTIZED } from 'react-native-executorch'
+
+export function AgentChat() {
+  const { sendMessage, isReady, response } = useLLM({
+    model: GEMMA4_E4B_QUANTIZED,
+  })
+
+  return (
+    // your UI
+  )
+}
+```
+
+See the [useLLM hook docs](/docs/hooks/natural-language-processing/useLLM) for
+the full API.
