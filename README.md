@@ -164,6 +164,33 @@ Our library has a number of ready-to-use AI models; a complete list is available
 Check out how our library can help you build your React Native AI features by visiting our docs:
 https://docs.swmansion.com/react-native-executorch
 
+## Deft Fork: Gemma 4 Support
+
+This is a fork of [software-mansion/react-native-executorch](https://github.com/software-mansion/react-native-executorch) maintained by [bedda-tech](https://github.com/bedda-tech) to add Gemma 4 support for the [Deft](https://github.com/bedda-tech/deft) on-device AI phone agent.
+
+**Fork additions:**
+
+- `GEMMA4_E2B` and `GEMMA4_E4B` model constants
+- Native function calling support in `LLMController` (required for agent tool use)
+- ExecuTorch `.pte` weights hosted for direct download
+
+If you are building with Deft, use this fork:
+
+```bash
+npm install github:bedda-tech/react-native-executorch
+```
+
+Upstream changes are merged periodically. Gemma 4 improvements should be contributed upstream when possible.
+
+## Deft Ecosystem
+
+| Package | Description |
+|---------|-------------|
+| [react-native-accessibility-controller](https://github.com/bedda-tech/react-native-accessibility-controller) | Android AccessibilityService for React Native |
+| [react-native-device-agent](https://github.com/bedda-tech/react-native-device-agent) | Agent loop connecting LLM to phone control |
+| [react-native-executorch](https://github.com/bedda-tech/react-native-executorch) | On-device LLM inference (Gemma 4) via ExecuTorch (this fork) |
+| [deft](https://github.com/bedda-tech/deft) | The consumer app combining all three |
+
 ## License
 
 This library is licensed under [The MIT License](./LICENSE).
