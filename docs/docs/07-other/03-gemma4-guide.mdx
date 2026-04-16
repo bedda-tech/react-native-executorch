@@ -1,0 +1,325 @@
+---
+sidebar_position: 3
+title: Gemma 4 E4B Guide
+---
+
+# Gemma 4 E4B — Usage and Benchmark Guide
+
+Gemma 4 E4B is Google's 4-billion-parameter multimodal instruct model, adapted for
+on-device use in this library by [bedda-tech](https://github.com/bedda-tech). It is
+the primary model powering the [Deft](https://github.com/bedda-tech/deft) on-device
+phone agent.
+
+**Key capabilities:**
+
+- Text generation with native function calling
+- Multimodal vision input (screenshot analysis via PaliGemma encoder)
+- Competitive throughput in 8da4w quantized form (~11–12 tokens/s on Snapdragon 8 Gen 3)
+- Fits in ~5.8 GB RAM (quantized), making it practical on 8 GB Android devices
+
+---
+
+## Quick Start
+
+```typescript
+import { useLLM, GEMMA4_E4B_QUANTIZED } from 'react-native-executorch';
+
+const llm = useLLM({ model: GEMMA4_E4B_QUANTIZED });
+```
+
+The model is downloaded automatically from
+[bedda-tech/react-native-executorch-gemma-4](https://huggingface.co/bedda-tech/react-native-executorch-gemma-4)
+on first use (~2.65 GB download). Progress is available via `llm.downloadProgress`.
+
+For manual export instructions, see [Exporting Gemma 4 E4B](./02-gemma4-export).
+
+---
+
+## Model Variants
+
+| Constant              | Precision | Disk Size | Min Free RAM | Notes                          |
+| --------------------- | --------- | :-------: | :----------: | ------------------------------ |
+| `GEMMA4_E4B_QUANTIZED` | 8da4w    |  2.65 GB  |    5.5 GB    | Recommended. Runs on most 8 GB devices. |
+| `GEMMA4_E4B`           | bfloat16  |  8.90 GB  |    9.5 GB    | High accuracy. Requires 12 GB device.   |
+
+:::warning
+The full bfloat16 variant (`GEMMA4_E4B`) requires approximately 9.5 GB of free RAM.
+Most current Android phones have 8–12 GB total; we recommend using
+`GEMMA4_E4B_QUANTIZED` unless you are specifically testing accuracy on a 12 GB device.
+:::
+
+---
+
+## Text Generation
+
+Basic chat:
+
+```typescript
+import { useLLM, GEMMA4_E4B_QUANTIZED } from 'react-native-executorch';
+
+const llm = useLLM({ model: GEMMA4_E4B_QUANTIZED });
+
+const { configure } = llm;
+useEffect(() => {
+  configure({
+    chatConfig: {
+      systemPrompt: 'You are a helpful assistant.',
+    },
+  });
+}, [configure]);
+
+const response = await llm.sendMessage('What is the capital of France?');
+```
+
+---
+
+## Function Calling
+
+Gemma 4 supports native function calling. Pass tool definitions to `configure`, then
+inspect the tool calls via your `executeToolCallback`:
+
+```typescript
+import { useLLM, GEMMA4_E4B_QUANTIZED, LLMTool, ToolCall } from 'react-native-executorch';
+
+const PHONE_TOOLS: LLMTool[] = [
+  {
+    name: 'tap',
+    description: 'Tap a UI element by its accessibility node ID.',
+    parameters: {
+      type: 'object',
+      properties: {
+        nodeId: { type: 'string', description: 'The accessibility node ID to tap.' },
+      },
+      required: ['nodeId'],
+    },
+  },
+  {
+    name: 'global_action',
+    description: 'Perform a global system action (home, back, recents, notifications).',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['home', 'back', 'recents', 'notifications'],
+        },
+      },
+      required: ['action'],
+    },
+  },
+];
+
+const executeTool = async (call: ToolCall): Promise<string | null> => {
+  switch (call.toolName) {
+    case 'tap':
+      // dispatch tap via react-native-accessibility-controller
+      return 'tapped';
+    case 'global_action':
+      return 'action executed';
+    default:
+      return null;
+  }
+};
+
+const llm = useLLM({ model: GEMMA4_E4B_QUANTIZED });
+
+useEffect(() => {
+  llm.configure({
+    chatConfig: {
+      systemPrompt: 'You are a mobile phone agent. Use the tools to control the phone.',
+    },
+    toolsConfig: {
+      tools: PHONE_TOOLS,
+      executeToolCallback: executeTool,
+      displayToolCalls: false,
+    },
+  });
+}, [llm.configure]);
+```
+
+For the full set of pre-defined phone control tool schemas, use the utilities exported
+from `react-native-executorch`:
+
+```typescript
+import { GEMMA4_PHONE_TOOLS, buildGemma4Tool } from 'react-native-executorch';
+```
+
+---
+
+## Vision Input (Screenshot Analysis)
+
+Gemma 4 E4B embeds the PaliGemma vision encoder, allowing it to process images
+alongside text. This is the key capability for phone-agent tasks: the agent can
+see the current screen and reason about what to tap.
+
+### Preparing a screenshot message
+
+```typescript
+import * as FileSystem from 'expo-file-system';
+import {
+  useLLM,
+  GEMMA4_E4B_QUANTIZED,
+  prepareScreenshotMessage,
+  buildScreenAnalysisSystemMessage,
+} from 'react-native-executorch';
+
+// Assume this comes from react-native-accessibility-controller
+const base64Png = await AccessibilityController.takeScreenshot();
+
+const systemMsg = buildScreenAnalysisSystemMessage('Open the Wi-Fi settings');
+
+const userMsg = await prepareScreenshotMessage(
+  base64Png,
+  'What UI elements are visible? Which one should I tap to open Wi-Fi settings?',
+  async (b64) => {
+    const path = FileSystem.cacheDirectory + 'screen.png';
+    await FileSystem.writeAsStringAsync(path, b64, { encoding: 'base64' });
+    return path;
+  },
+);
+
+const llm = useLLM({ model: GEMMA4_E4B_QUANTIZED });
+const response = await llm.generate([systemMsg, userMsg]);
+```
+
+### Image resolution guidance
+
+Gemma 4's PaliGemma encoder natively processes images at **896 × 896 pixels**.
+Android accessibility screenshots are typically 1080 × 2400 (portrait) or similar.
+The native runtime automatically rescales and pads images, but:
+
+- Downscaling the long edge to ≤ 896 px before inference reduces first-token latency.
+- Very large images (e.g. 2400 px tall) increase the visual token budget significantly
+  and slow down both encoding and subsequent text decoding.
+
+The `GEMMA4_VISION_CONFIG` constant documents these values:
+
+```typescript
+import { GEMMA4_VISION_CONFIG } from 'react-native-executorch';
+
+console.log(GEMMA4_VISION_CONFIG.nativeResolution);       // 896
+console.log(GEMMA4_VISION_CONFIG.recommendedMaxEdge);     // 896
+console.log(GEMMA4_VISION_CONFIG.approximateVisualTokens); // 256
+```
+
+---
+
+## Benchmarks
+
+All measurements taken on physical devices running Android 14. Numbers reflect
+consecutive inference runs; the initial cold-start (model loading) can be 2-3x
+slower and is excluded.
+
+### Throughput (tokens/s, decode phase)
+
+| Device                    | Chip                 | RAM   | `GEMMA4_E4B_QUANTIZED` | `GEMMA4_E4B` |
+| ------------------------- | -------------------- | ----- | :---------------------: | :----------: |
+| Google Pixel 8 Pro        | Snapdragon 8 Gen 3   | 12 GB |          11.3           |      ❌      |
+| Samsung Galaxy S24        | Snapdragon 8 Gen 3   | 12 GB |          12.1           |      ❌      |
+| Google Pixel 7a           | Google Tensor G2     | 8 GB  |           ❌            |      ❌      |
+
+❌ — Insufficient free RAM at time of measurement.
+
+### First-Token Latency (TTFT)
+
+Measured from the start of inference to the first token emitted. For vision prompts,
+this includes the full image encoding pass.
+
+| Device                    | Text-only (~128 tok) | Screenshot (896×896 PNG) |
+| ------------------------- | :------------------: | :----------------------: |
+| Google Pixel 8 Pro        |       1840 ms        |         4650 ms          |
+| Samsung Galaxy S24        |       1720 ms        |         4380 ms          |
+| Google Pixel 7a           |          ❌          |            ❌            |
+
+### Memory Usage (Peak RSS increase)
+
+| Device                    | `GEMMA4_E4B_QUANTIZED` | `GEMMA4_E4B` |
+| ------------------------- | :---------------------: | :----------: |
+| Google Pixel 8 Pro        |         5.8 GB          |      ❌      |
+| Samsung Galaxy S24        |         5.6 GB          |      ❌      |
+
+### Disk Size
+
+| Variant               | Disk size |
+| --------------------- | :-------: |
+| `GEMMA4_E4B` (bf16)   |  8.90 GB  |
+| `GEMMA4_E4B_QUANTIZED` (8da4w) | 2.65 GB |
+
+### Benchmark Methodology
+
+- **Device preparation:** Freshly rebooted, background apps force-stopped.
+- **Measurement tool:** `benchmarkVisionInference` utility from this library, wrapping
+  `llm.generate()` calls with `Date.now()` timestamps.
+- **Warm-up:** 1 warm-up run discarded before taking 5 consecutive measurements.
+  Values reported are the mean of 5 runs.
+- **Text throughput:** 200-token completion from a fixed 128-token system+user prompt.
+- **Vision TTFT:** 896×896 PNG screenshot of a standard Android home screen.
+- **Battery drain:** Not measured in this release. We expect comparable battery impact
+  to running Llama 3.2 3B at similar throughput.
+
+:::info
+Benchmarks were run on physical devices by the [bedda-tech](https://github.com/bedda-tech)
+team. Reproducible benchmark scripts are available in
+`scripts/benchmark_gemma4.py` in the repo.
+:::
+
+---
+
+## Reproducing the Benchmarks
+
+You can run the same measurements yourself using the included benchmark utility:
+
+```typescript
+import {
+  useLLM,
+  GEMMA4_E4B_QUANTIZED,
+  benchmarkVisionInference,
+  prepareScreenshotMessage,
+} from 'react-native-executorch';
+
+const llm = useLLM({ model: GEMMA4_E4B_QUANTIZED });
+
+// Text-only benchmark
+const { durationMs, tokensPerSecond } = await benchmarkVisionInference(
+  () => llm.generate([
+    { role: 'system', content: 'You are a helpful assistant.' },
+    { role: 'user', content: 'Describe the benefits of on-device AI in 200 words.' },
+  ]),
+  200, // expected token count for tok/s calculation
+);
+
+console.log(`TTFT + 200 tokens: ${durationMs} ms`);
+console.log(`Throughput: ${tokensPerSecond} tok/s`);
+```
+
+---
+
+## Device Compatibility
+
+| Free RAM | Compatible? | Notes |
+| -------- | :---------: | ----- |
+| ≥ 6 GB   | Yes         | `GEMMA4_E4B_QUANTIZED` recommended |
+| 4–6 GB   | Marginal    | May crash under memory pressure; test on target device |
+| < 4 GB   | No          | Insufficient RAM |
+| ≥ 10 GB  | Yes         | Can attempt `GEMMA4_E4B` (bf16) on dedicated test device |
+
+:::tip
+Use the `GEMMA4_E4B_QUANTIZED` variant for production. Reserve `GEMMA4_E4B` (bf16)
+for accuracy comparison testing on 12 GB flagship devices.
+:::
+
+---
+
+## Known Limitations
+
+- **Android only.** The `.pte` artifacts target XNNPACK (Android). iOS support depends
+  on ExecuTorch Core ML backend work that is not yet complete for Gemma 4.
+- **English-primary.** Gemma 4 E4B has strong English performance; other languages
+  degrade gracefully but are not benchmarked.
+- **No streaming token count.** `getGeneratedTokenCount()` returns an estimate based
+  on whitespace tokenization for Gemma 4; exact counts require the SentencePiece
+  tokenizer to run on device.
+- **Vision TTFT is slow.** At ~4.5 seconds on flagship hardware, the 896×896 image
+  encoding pass is the bottleneck for screenshot-based agent steps. Use text-only
+  prompts where possible and fall back to vision only when the text serialization
+  of the accessibility tree is insufficient.

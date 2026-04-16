@@ -79,6 +79,19 @@ Data presented for YOLO models is based on inference with `forward_640` method.
 | LLAMA3_2_3B_SPINQUANT (XNNPACK) |        3.8         |       3.7       |
 | LLAMA3_2_3B_QLORA (XNNPACK)     |        4.0         |       3.9       |
 
+## Vision-Language Models (VLM)
+
+:::note
+Memory usage for VLMs includes both the language model weights and the vision encoder. For Gemma 4 E4B the PaliGemma-derived vision encoder adds approximately 0.6 GB on top of the language backbone. Numbers below reflect peak RSS increase during active inference.
+:::
+
+| Model / Device                        | Google Pixel 8 Pro [GB] | Samsung Galaxy S24 [GB] |
+| ------------------------------------- | :---------------------: | :---------------------: |
+| GEMMA4_E4B (bf16, XNNPACK)            |           ❌            |           ❌            |
+| GEMMA4_E4B_QUANTIZED (8da4w, XNNPACK) |           5.8           |           5.6           |
+
+❌ - bf16 variant requires >8 GB free RAM; not supported on current test devices.
+
 ## Speech to Text
 
 | Model / Device         | iPhone 17 Pro [MB] | OnePlus 12 [MB] |
@@ -120,8 +133,8 @@ output. When resize is enabled, expect higher memory usage and inference time
 with higher resolutions.
 :::
 
-| Model / Device              | iPhone 17 Pro [MB] | OnePlus 12 [MB] |
-| --------------------------- | :----------------: | :-------------: |
+| Model / Device               | iPhone 17 Pro [MB] | OnePlus 12 [MB] |
+| ---------------------------- | :----------------: | :-------------: |
 | DEEPLABV3_RESNET50 (XNNPACK) |        660         |       930       |
 
 ## Instance Segmentation

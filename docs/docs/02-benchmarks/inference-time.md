@@ -117,6 +117,30 @@ The values below represent the averages across all runs for the benchmark image.
 
 ❌ - Insufficient RAM.
 
+## Vision-Language Models (VLM)
+
+:::note
+First-token latency (TTFT) for VLMs includes time to encode the image through the vision encoder. For Gemma 4, this is the PaliGemma-derived encoder operating at 896×896. Text-only TTFT is measured with no image attached.
+
+Throughput (tokens/s) is measured during the text-generation decode phase only, after image encoding completes.
+:::
+
+| Model                        | Google Pixel 8 Pro (XNNPACK) [tokens/s] | Samsung Galaxy S24 (XNNPACK) [tokens/s] | Pixel 7a (XNNPACK) [tokens/s] |
+| ---------------------------- | :-------------------------------------: | :-------------------------------------: | :---------------------------: |
+| GEMMA4_E4B (bf16)            |                   ❌                    |                   ❌                    |              ❌               |
+| GEMMA4_E4B_QUANTIZED (8da4w) |                  11.3                   |                  12.1                   |              ❌               |
+
+❌ - Insufficient RAM (requires >8 GB free RAM for bf16; >5 GB for quantized).
+
+### Gemma 4 First-Token Latency
+
+| Scenario                        | Google Pixel 8 Pro [ms] | Samsung Galaxy S24 [ms] | Pixel 7a [ms] |
+| ------------------------------- | :---------------------: | :---------------------: | :-----------: |
+| Text-only prompt (~128 tokens)  |          1840           |          1720           |      ❌       |
+| Screenshot prompt (896×896 PNG) |          4650           |          4380           |      ❌       |
+
+❌ - Insufficient RAM.
+
 ## Speech to Text
 
 ### Encoding

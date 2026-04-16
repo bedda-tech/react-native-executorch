@@ -69,6 +69,15 @@ title: Model Size
 | LLAMA3_2_3B_SPINQUANT |     2.55     |
 | LLAMA3_2_3B_QLORA     |     2.65     |
 
+## Vision-Language Models (VLM)
+
+| Model                        | XNNPACK [GB] |
+| ---------------------------- | :----------: |
+| GEMMA4_E4B (bf16)            |     8.90     |
+| GEMMA4_E4B_QUANTIZED (8da4w) |     2.65     |
+
+Model files are hosted by bedda-tech on Hugging Face: [bedda-tech/react-native-executorch-gemma-4](https://huggingface.co/bedda-tech/react-native-executorch-gemma-4).
+
 ## Speech to text
 
 | Model            | XNNPACK [MB] |
