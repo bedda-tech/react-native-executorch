@@ -86,3 +86,17 @@ export {
   WAIT_TOOL,
   TASK_COMPLETE_TOOL,
 } from './phoneTools';
+
+export {
+  // Screenshot preprocessing for multimodal / vision input
+  GEMMA4_VISION_CONFIG,
+  prepareScreenshotMessage,
+  benchmarkVisionInference,
+  buildScreenAnalysisSystemMessage,
+  stripDataUriPrefix,
+} from './screenshotPreprocessor';
+
+export type {
+  WriteBase64Fn,
+  VisionBenchmarkResult,
+} from './screenshotPreprocessor';

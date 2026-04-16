@@ -472,7 +472,8 @@ export const LFM2_VL_450M_QUANTIZED = {
 // Run scripts/export_gemma4_e4b.py on a GPU machine to generate the .pte artifact,
 // then upload to: bedda-tech/react-native-executorch-gemma-4
 const GEMMA4_E4B_ROOT = `${BEDDA_URL_PREFIX}-gemma-4/${BEDDA_VERSION_TAG}/gemma-4-e4b/`;
-const GEMMA4_E4B_QUANTIZED_MODEL = GEMMA4_E4B_ROOT + 'quantized/gemma4_e4b_8da4w.pte';
+const GEMMA4_E4B_QUANTIZED_MODEL =
+  GEMMA4_E4B_ROOT + 'quantized/gemma4_e4b_8da4w.pte';
 const GEMMA4_E4B_MODEL = GEMMA4_E4B_ROOT + 'original/gemma4_e4b_bf16.pte';
 const GEMMA4_E4B_TOKENIZER = GEMMA4_E4B_ROOT + 'tokenizer.json';
 const GEMMA4_E4B_TOKENIZER_CONFIG = GEMMA4_E4B_ROOT + 'tokenizer_config.json';
@@ -481,10 +482,12 @@ const GEMMA4_E4B_GENERATION_CONFIG = GEMMA4_E4B_ROOT + 'generation_config.json';
 /**
  * Gemma 4 E4B (4 billion parameter instruct model) — quantized (8da4w XNNPACK).
  * Exported by bedda-tech for on-device use in the Deft agent.
- * @category Models - LLM
+ * Supports vision input via the `vision` capability.
+ * @category Models - VLM
  */
 export const GEMMA4_E4B_QUANTIZED = {
   modelName: 'gemma-4-e4b-quantized',
+  capabilities: ['vision'] as ['vision'],
   modelSource: GEMMA4_E4B_QUANTIZED_MODEL,
   tokenizerSource: GEMMA4_E4B_TOKENIZER,
   tokenizerConfigSource: GEMMA4_E4B_TOKENIZER_CONFIG,
@@ -494,10 +497,12 @@ export const GEMMA4_E4B_QUANTIZED = {
 /**
  * Gemma 4 E4B (4 billion parameter instruct model) — full bfloat16 precision.
  * For high-memory devices only (requires ~8 GB free RAM).
- * @category Models - LLM
+ * Supports vision input via the `vision` capability.
+ * @category Models - VLM
  */
 export const GEMMA4_E4B = {
   modelName: 'gemma-4-e4b',
+  capabilities: ['vision'] as ['vision'],
   modelSource: GEMMA4_E4B_MODEL,
   tokenizerSource: GEMMA4_E4B_TOKENIZER,
   tokenizerConfigSource: GEMMA4_E4B_TOKENIZER_CONFIG,
