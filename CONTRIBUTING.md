@@ -1,5 +1,12 @@
 Thank you for your interest in contributing to react-native-executorch!
 
+This is the Deft fork of react-native-executorch, extended with Gemma 4 support and on-device inference optimizations. We welcome contributions to both the fork-specific features and general ExecuTorch integration improvements.
+
+## Community
+
+- [Discord](https://discord.gg/deft) — chat with maintainers and contributors
+- [GitHub Discussions](https://github.com/bedda-tech/react-native-executorch/discussions) — design proposals and Q&A
+
 # Ways to contribute
 
 There are several ways you can contribute to react-native-executorch
@@ -38,7 +45,7 @@ If you found an issue you would like to tackle and it is not assigned to anyone 
 
 ## Export new models to ET format
 
-Found a model you would like to use in your app but it is not currently supplied by us and got it exported and working with ExecuTorch? We would love you to create a PR on our [🤗 huggingface](https://huggingface.co/spaces/software-mansion/README/discussions?status=open&type=pull_request&sort=recently-created).
+Found a model you would like to use in your app but it is not currently supported, and you've gotten it exported and working with ExecuTorch? Open a PR or start a [GitHub Discussion](https://github.com/bedda-tech/react-native-executorch/discussions) so we can coordinate the integration.
 
 ## Contributing to examples or documentation
 
@@ -49,14 +56,14 @@ If you found some inconsistencies in our documentation or just something is miss
 
 Before writing any code reach out to us to make sure no one is currently working on it, you can always open an issue first.
 
-1. Fork the [repository](https://github.com/software-mansion/react-native-executorch) by clicking on the **[Fork](https://github.com/software-mansion/react-native-executorch/fork)** button on the repository's page. This creates a copy of the code under your GitHub use account.
+1. Fork the [repository](https://github.com/bedda-tech/react-native-executorch) by clicking on the **[Fork](https://github.com/bedda-tech/react-native-executorch/fork)** button on the repository's page. This creates a copy of the code under your GitHub user account.
 
-2. Clone your fork to your local disc, and add the base repository as a remote:
+2. Clone your fork to your local disk, and add the base repository as a remote:
 
 ```
-git clone git@github.com:<your Github handle>/react-native-executorch.git
+git clone git@github.com:<your GitHub handle>/react-native-executorch.git
 cd react-native-executorch
-git remote add upstream https://github.com/software-mansion/react-native-executorch.git
+git remote add upstream https://github.com/bedda-tech/react-native-executorch.git
 ```
 
 3. Create your develop branch
