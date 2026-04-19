@@ -471,6 +471,14 @@ export const LFM2_VL_450M_QUANTIZED = {
 // GEMMA 4 (Deft fork — exported by bedda-tech, hosted at bedda-tech HF org)
 // Run scripts/export_gemma4_e4b.py on a GPU machine to generate the .pte artifact,
 // then upload to: bedda-tech/react-native-executorch-gemma-4
+const GEMMA4_E2B_ROOT = `${BEDDA_URL_PREFIX}-gemma-4/${BEDDA_VERSION_TAG}/gemma-4-e2b/`;
+const GEMMA4_E2B_QUANTIZED_MODEL =
+  GEMMA4_E2B_ROOT + 'quantized/gemma4_e2b_8da4w.pte';
+const GEMMA4_E2B_MODEL = GEMMA4_E2B_ROOT + 'original/gemma4_e2b_bf16.pte';
+const GEMMA4_E2B_TOKENIZER = GEMMA4_E2B_ROOT + 'tokenizer.json';
+const GEMMA4_E2B_TOKENIZER_CONFIG = GEMMA4_E2B_ROOT + 'tokenizer_config.json';
+const GEMMA4_E2B_GENERATION_CONFIG = GEMMA4_E2B_ROOT + 'generation_config.json';
+
 const GEMMA4_E4B_ROOT = `${BEDDA_URL_PREFIX}-gemma-4/${BEDDA_VERSION_TAG}/gemma-4-e4b/`;
 const GEMMA4_E4B_QUANTIZED_MODEL =
   GEMMA4_E4B_ROOT + 'quantized/gemma4_e4b_8da4w.pte';
@@ -478,6 +486,35 @@ const GEMMA4_E4B_MODEL = GEMMA4_E4B_ROOT + 'original/gemma4_e4b_bf16.pte';
 const GEMMA4_E4B_TOKENIZER = GEMMA4_E4B_ROOT + 'tokenizer.json';
 const GEMMA4_E4B_TOKENIZER_CONFIG = GEMMA4_E4B_ROOT + 'tokenizer_config.json';
 const GEMMA4_E4B_GENERATION_CONFIG = GEMMA4_E4B_ROOT + 'generation_config.json';
+
+/**
+ * Gemma 4 E2B (2 billion parameter instruct model) — quantized (8da4w XNNPACK).
+ * Faster and lighter than E4B; suitable for mid-range devices (~1.2 GB on-device).
+ * Supports vision input via the `vision` capability.
+ * @category Models - VLM
+ */
+export const GEMMA4_E2B_QUANTIZED = {
+  modelName: 'gemma-4-e2b-quantized',
+  capabilities: ['vision'] as ['vision'],
+  modelSource: GEMMA4_E2B_QUANTIZED_MODEL,
+  tokenizerSource: GEMMA4_E2B_TOKENIZER,
+  tokenizerConfigSource: GEMMA4_E2B_TOKENIZER_CONFIG,
+  generationConfigSource: GEMMA4_E2B_GENERATION_CONFIG,
+} as const;
+
+/**
+ * Gemma 4 E2B (2 billion parameter instruct model) — full bfloat16 precision.
+ * Supports vision input via the `vision` capability.
+ * @category Models - VLM
+ */
+export const GEMMA4_E2B = {
+  modelName: 'gemma-4-e2b',
+  capabilities: ['vision'] as ['vision'],
+  modelSource: GEMMA4_E2B_MODEL,
+  tokenizerSource: GEMMA4_E2B_TOKENIZER,
+  tokenizerConfigSource: GEMMA4_E2B_TOKENIZER_CONFIG,
+  generationConfigSource: GEMMA4_E2B_GENERATION_CONFIG,
+} as const;
 
 /**
  * Gemma 4 E4B (4 billion parameter instruct model) — quantized (8da4w XNNPACK).
@@ -1137,6 +1174,10 @@ export const FSMN_VAD = {
  */
 export const MODEL_REGISTRY = {
   ALL_MODELS: {
+    GEMMA4_E2B,
+    GEMMA4_E2B_QUANTIZED,
+    GEMMA4_E4B,
+    GEMMA4_E4B_QUANTIZED,
     LLAMA3_2_3B,
     LLAMA3_2_3B_QLORA,
     LLAMA3_2_3B_SPINQUANT,

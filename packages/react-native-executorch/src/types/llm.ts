@@ -58,6 +58,8 @@ export type LLMModelName =
   | 'lfm2.5-vl-1.6b-quantized'
   | 'lfm2.5-vl-450m-quantized'
   // Deft fork models (bedda-tech)
+  | 'gemma-4-e2b'
+  | 'gemma-4-e2b-quantized'
   | 'gemma-4-e4b'
   | 'gemma-4-e4b-quantized';
 
