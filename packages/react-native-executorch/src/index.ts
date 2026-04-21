@@ -181,6 +181,7 @@ export * from './modules/general/ExecutorchModule';
 export * from './utils/ResourceFetcher';
 export * from './utils/ResourceFetcherUtils';
 export * from './utils/llm';
+export * from './utils/downloadModel';
 export * from './common/Logger';
 export * from './utils/llms/context_strategy';
 export * from './utils/llms/gemma4';
