@@ -9,5 +9,9 @@ declare module 'pngjs/browser' {
       callback?: (error: Error | null, data: PNG) => void
     ): PNG;
     pack(): NodeJS.ReadableStream;
+    static sync: {
+      write(png: PNG, options?: Record<string, unknown>): Buffer;
+      read(buffer: Buffer, options?: Record<string, unknown>): PNG;
+    };
   }
 }
