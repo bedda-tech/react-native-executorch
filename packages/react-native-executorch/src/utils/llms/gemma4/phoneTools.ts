@@ -55,6 +55,11 @@ export const TYPE_TEXT_TOOL: Gemma4Tool = buildGemma4Tool({
         type: 'string',
         description: 'The text to type',
       },
+      nodeId: {
+        type: 'string',
+        description:
+          'Accessibility node ID of the editable field (optional — auto-detects focused field if omitted)',
+      },
     },
     required: ['text'],
   },
@@ -101,7 +106,7 @@ export const SCROLL_TOOL: Gemma4Tool = buildGemma4Tool({
         description: 'Direction to scroll',
       },
     },
-    required: ['nodeId', 'direction'],
+    required: ['direction'],
   },
 });
 
