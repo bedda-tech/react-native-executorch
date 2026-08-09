@@ -10,15 +10,20 @@
 import {
   GEMMA4_PHONE_TOOLS,
   TAP_TOOL,
+  LONG_PRESS_TOOL,
   TYPE_TEXT_TOOL,
+  CLEAR_TEXT_TOOL,
+  PRESS_ENTER_TOOL,
   SWIPE_TOOL,
   SCROLL_TOOL,
+  SCROLL_UNTIL_FOUND_TOOL,
   OPEN_APP_TOOL,
   READ_SCREEN_TOOL,
   SCREENSHOT_TOOL,
   GLOBAL_ACTION_TOOL,
   WAIT_TOOL,
   TASK_COMPLETE_TOOL,
+  TASK_FAILED_TOOL,
 } from '../phoneTools';
 import { formatGemma4Prompt, buildToolInstructions } from '../chatTemplate';
 import { parseGemma4Response } from '../toolParser';
@@ -28,8 +33,8 @@ import { parseGemma4Response } from '../toolParser';
 // ---------------------------------------------------------------------------
 
 describe('GEMMA4_PHONE_TOOLS — schema structure', () => {
-  it('contains exactly 10 tools', () => {
-    expect(GEMMA4_PHONE_TOOLS).toHaveLength(10);
+  it('contains exactly 15 tools', () => {
+    expect(GEMMA4_PHONE_TOOLS).toHaveLength(15);
   });
 
   it('every tool has a non-empty name', () => {
@@ -62,8 +67,20 @@ describe('phone tool names', () => {
     expect((TAP_TOOL as any).name).toBe('tap');
   });
 
+  it('long_press tool has name "long_press"', () => {
+    expect((LONG_PRESS_TOOL as any).name).toBe('long_press');
+  });
+
   it('type_text tool has name "type_text"', () => {
     expect((TYPE_TEXT_TOOL as any).name).toBe('type_text');
+  });
+
+  it('clear_text tool has name "clear_text"', () => {
+    expect((CLEAR_TEXT_TOOL as any).name).toBe('clear_text');
+  });
+
+  it('press_enter tool has name "press_enter"', () => {
+    expect((PRESS_ENTER_TOOL as any).name).toBe('press_enter');
   });
 
   it('swipe tool has name "swipe"', () => {
@@ -72,6 +89,10 @@ describe('phone tool names', () => {
 
   it('scroll tool has name "scroll"', () => {
     expect((SCROLL_TOOL as any).name).toBe('scroll');
+  });
+
+  it('scroll_until_found tool has name "scroll_until_found"', () => {
+    expect((SCROLL_UNTIL_FOUND_TOOL as any).name).toBe('scroll_until_found');
   });
 
   it('open_app tool has name "open_app"', () => {
@@ -97,6 +118,10 @@ describe('phone tool names', () => {
   it('task_complete tool has name "task_complete"', () => {
     expect((TASK_COMPLETE_TOOL as any).name).toBe('task_complete');
   });
+
+  it('task_failed tool has name "task_failed"', () => {
+    expect((TASK_FAILED_TOOL as any).name).toBe('task_failed');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -116,10 +141,16 @@ describe('phone tool required fields', () => {
     expect(req).toContain('endY');
   });
 
-  it('scroll requires nodeId and direction', () => {
+  it('scroll requires direction (nodeId is optional — auto-detects scroll container)', () => {
     const req = (SCROLL_TOOL as any).parameters.required as string[];
-    expect(req).toContain('nodeId');
     expect(req).toContain('direction');
+    expect(req).not.toContain('nodeId');
+  });
+
+  it('scroll_until_found requires direction', () => {
+    expect((SCROLL_UNTIL_FOUND_TOOL as any).parameters.required).toContain(
+      'direction'
+    );
   });
 
   it('open_app requires packageName', () => {
@@ -134,6 +165,10 @@ describe('phone tool required fields', () => {
     expect((TASK_COMPLETE_TOOL as any).parameters.required).toContain(
       'summary'
     );
+  });
+
+  it('task_failed requires reason', () => {
+    expect((TASK_FAILED_TOOL as any).parameters.required).toContain('reason');
   });
 });
 
@@ -255,15 +290,20 @@ describe('phone tools prompt round-trip', () => {
     const instructions = buildToolInstructions(GEMMA4_PHONE_TOOLS);
     const expectedNames = [
       'tap',
+      'long_press',
       'type_text',
+      'clear_text',
+      'press_enter',
       'swipe',
       'scroll',
+      'scroll_until_found',
       'open_app',
       'read_screen',
       'screenshot',
       'global_action',
       'wait',
       'task_complete',
+      'task_failed',
     ];
     for (const name of expectedNames) {
       expect(instructions).toContain(`"${name}"`);

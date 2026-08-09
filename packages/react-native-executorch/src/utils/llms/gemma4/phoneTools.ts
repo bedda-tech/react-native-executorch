@@ -66,6 +66,68 @@ export const TYPE_TEXT_TOOL: Gemma4Tool = buildGemma4Tool({
 });
 
 /**
+ * Long press a UI element by its accessibility node ID or screen coordinates.
+ * Opens context menus or selects text.
+ */
+export const LONG_PRESS_TOOL: Gemma4Tool = buildGemma4Tool({
+  name: 'long_press',
+  description:
+    'Long press a UI element by its node ID or screen coordinates (opens context menus, selects text)',
+  parameters: {
+    type: 'object',
+    properties: {
+      nodeId: { type: 'string', description: 'Accessibility node ID' },
+      x: {
+        type: 'number',
+        description: 'X coordinate (fallback if no nodeId)',
+      },
+      y: {
+        type: 'number',
+        description: 'Y coordinate (fallback if no nodeId)',
+      },
+    },
+  },
+});
+
+/**
+ * Clear all text from an input field.
+ */
+export const CLEAR_TEXT_TOOL: Gemma4Tool = buildGemma4Tool({
+  name: 'clear_text',
+  description:
+    'Clear all text from an input field. If nodeId is omitted, the currently focused editable field is used. Prefer this over type_text with empty string when you want to confirm clearing.',
+  parameters: {
+    type: 'object',
+    properties: {
+      nodeId: {
+        type: 'string',
+        description:
+          'Node ID of the editable field (optional, auto-detects focused field if omitted)',
+      },
+    },
+  },
+});
+
+/**
+ * Press the Enter / IME action key on an input field.
+ */
+export const PRESS_ENTER_TOOL: Gemma4Tool = buildGemma4Tool({
+  name: 'press_enter',
+  description:
+    'Press the Enter / IME action key on an input field to submit a search, send a message, or confirm input. If nodeId is omitted, the currently focused editable field is used.',
+  parameters: {
+    type: 'object',
+    properties: {
+      nodeId: {
+        type: 'string',
+        description:
+          'Node ID of the editable field (optional, auto-detects focused field if omitted)',
+      },
+    },
+  },
+});
+
+/**
  * Swipe between two screen coordinates.
  */
 export const SWIPE_TOOL: Gemma4Tool = buildGemma4Tool({
@@ -104,6 +166,62 @@ export const SCROLL_TOOL: Gemma4Tool = buildGemma4Tool({
         type: 'string',
         enum: ['up', 'down', 'left', 'right'],
         description: 'Direction to scroll',
+      },
+    },
+    required: ['direction'],
+  },
+});
+
+/**
+ * Scroll a container repeatedly in a direction until a matching node appears
+ * in the accessibility tree, then return its nodeId.
+ */
+export const SCROLL_UNTIL_FOUND_TOOL: Gemma4Tool = buildGemma4Tool({
+  name: 'scroll_until_found',
+  description:
+    'Scroll a container repeatedly in a direction until a matching node appears in the accessibility tree, then return its nodeId. Returns null if the node is not found after maxScrolls scrolls. Use for long lists where the target item is not currently visible (e.g. finding a contact, app, or setting buried in a scrollable list).',
+  parameters: {
+    type: 'object',
+    properties: {
+      direction: {
+        type: 'string',
+        description: 'Scroll direction',
+        enum: ['up', 'down', 'left', 'right'],
+      },
+      text: {
+        type: 'string',
+        description: 'Substring to match against node text (case-sensitive)',
+      },
+      contentDescription: {
+        type: 'string',
+        description: 'Substring to match against node content description',
+      },
+      className: {
+        type: 'string',
+        description: 'Exact class name to match (e.g. android.widget.Button)',
+      },
+      isChecked: {
+        type: 'boolean',
+        description: 'Filter by checked state (true=checked, false=unchecked)',
+      },
+      isEnabled: {
+        type: 'boolean',
+        description: 'Filter by enabled state (false to find disabled nodes)',
+      },
+      scrollNodeId: {
+        type: 'string',
+        description:
+          'Node ID of the scrollable container (optional, auto-detects if omitted)',
+      },
+      maxScrolls: {
+        type: 'number',
+        description:
+          'Maximum number of scroll steps before giving up (default 20)',
+      },
+      intervalMs: {
+        type: 'number',
+        description:
+          'Delay in ms between scroll and accessibility-tree check (default 300)',
       },
     },
     required: ['direction'],
@@ -223,6 +341,27 @@ export const TASK_COMPLETE_TOOL: Gemma4Tool = buildGemma4Tool({
 });
 
 /**
+ * Signal that the assigned task cannot be completed.
+ * Prefer this over running until the step limit when the task is impossible
+ * or blocked.
+ */
+export const TASK_FAILED_TOOL: Gemma4Tool = buildGemma4Tool({
+  name: 'task_failed',
+  description:
+    'Signal that the task cannot be completed. Use this when the task is impossible, blocked, or requires unavailable permissions. Prefer this over running until the step limit.',
+  parameters: {
+    type: 'object',
+    properties: {
+      reason: {
+        type: 'string',
+        description: 'Explanation of why the task failed or is impossible',
+      },
+    },
+    required: ['reason'],
+  },
+});
+
+/**
  * The full set of phone control tools available to the Deft agent.
  * Pass this array to `formatGemma4Prompt` or the `useLLM` hook to enable
  * function calling for phone control tasks.
@@ -236,13 +375,18 @@ export const TASK_COMPLETE_TOOL: Gemma4Tool = buildGemma4Tool({
  */
 export const GEMMA4_PHONE_TOOLS: Gemma4Tool[] = [
   TAP_TOOL,
+  LONG_PRESS_TOOL,
   TYPE_TEXT_TOOL,
+  CLEAR_TEXT_TOOL,
+  PRESS_ENTER_TOOL,
   SWIPE_TOOL,
   SCROLL_TOOL,
+  SCROLL_UNTIL_FOUND_TOOL,
   OPEN_APP_TOOL,
   READ_SCREEN_TOOL,
   SCREENSHOT_TOOL,
   GLOBAL_ACTION_TOOL,
   WAIT_TOOL,
   TASK_COMPLETE_TOOL,
+  TASK_FAILED_TOOL,
 ];
