@@ -1,0 +1,67 @@
+name: Publish fork to npm
+
+# Upstream's npm-publish.yml is gated on
+# `github.repository == 'software-mansion/react-native-executorch'`, so it never
+# runs here — this fork had no publish path at all. This workflow is the fork's
+# own, kept separate so upstream's file can be merged without conflict.
+#
+# Requires the NPM_TOKEN repo secret (not set yet as of 2026-09-14) and a package
+# rename: `react-native-executorch` is upstream's live package, so this fork MUST
+# publish under a scope (e.g. @bedda-tech/react-native-executorch). The
+# guard-name step below refuses to publish under the unscoped upstream name.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Build & Publish
+    if: github.repository == 'bedda-tech/react-native-executorch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for npm provenance
+    env:
+      PKG_DIR: packages/react-native-executorch
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+          registry-url: https://registry.npmjs.org
+
+      - name: Refuse to publish under upstream's package name
+        working-directory: ${{ env.PKG_DIR }}
+        run: |
+          NAME=$(jq -r .name package.json)
+          echo "package name: $NAME"
+          if [ "$NAME" = "react-native-executorch" ]; then
+            echo "::error::This fork cannot publish as 'react-native-executorch' — that is" \
+                 "Software Mansion's package. Rename to a scoped name (e.g." \
+                 "@bedda-tech/react-native-executorch) before tagging a release."
+            exit 1
+          fi
+
+      - name: Install monorepo dependencies
+        run: yarn install --immutable
+
+      - name: Typecheck
+        working-directory: ${{ env.PKG_DIR }}
+        run: yarn typecheck
+
+      - name: Build
+        working-directory: ${{ env.PKG_DIR }}
+        run: yarn bob build
+
+      - name: Publish
+        working-directory: ${{ env.PKG_DIR }}
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
