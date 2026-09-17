@@ -38,9 +38,7 @@
 React Native ExecuTorch bridges the gap between React Native and native platform capabilities, enabling developers to efficiently run local AI models on mobile devices. This can be achieved without the need for extensive expertise in native programming or machine learning.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![npm version](https://img.shields.io/npm/v/react-native-executorch?color=00008B)](https://www.npmjs.com/package/react-native-executorch)
-[![npm nightly](https://img.shields.io/npm/v/react-native-executorch/executorch-nightly?label=nightly&color=00008B)](https://www.npmjs.com/package/react-native-executorch)
-[![CI](https://github.com/bedda-tech/react-native-executorch/actions/workflows/ci.yml/badge.svg)](https://github.com/bedda-tech/react-native-executorch/actions/workflows/ci.yml)
+[![build](https://img.shields.io/github/actions/workflow/status/bedda-tech/react-native-executorch/ci.yml?branch=main)](https://github.com/bedda-tech/react-native-executorch/actions)
 
 <details>
 <summary><strong>Table of Contents</strong></summary>
