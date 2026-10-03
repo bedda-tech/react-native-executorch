@@ -18,6 +18,7 @@ import {
   WHISPER_BASE_EN,
   WHISPER_SMALL_EN,
   TranscriptionResult,
+  TranscriptionSegment,
   SpeechToTextProps,
 } from 'react-native-executorch';
 import { ModelPicker, ModelOption } from '../components/ModelPicker';
@@ -61,7 +62,7 @@ export const SpeechToTextScreen = ({ onBack }: { onBack: () => void }) => {
 
   const [liveResult, setLiveResult] = useState<{
     fullText: string;
-    segments: any[];
+    segments: TranscriptionSegment[];
   } | null>(null);
 
   const [enableTimestamps, setEnableTimestamps] = useState(false);
@@ -173,7 +174,7 @@ export const SpeechToTextScreen = ({ onBack }: { onBack: () => void }) => {
     }
 
     let accumulatedText = '';
-    let accumulatedSegments: any[] = [];
+    let accumulatedSegments: TranscriptionSegment[] = [];
 
     try {
       const streamIter = model.stream({
